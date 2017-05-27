@@ -7,7 +7,7 @@ A way to replace UIPageViewController, JCPageViewController  support ViewControl
 
 This project has been used for [my graduation project](https://github.com/jakecai).
 
-![JCPageViewController ScreenShot](http:)
+![JCPageViewController ScreenShot](http://g.recordit.co/VIf50wYuB6.gif)
 
 ## Feature
 * Manage childControllers' life cycles.
