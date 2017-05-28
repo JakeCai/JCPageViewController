@@ -174,7 +174,7 @@ typedef enum {
                 UIView *lastView = [self controllerAtIndex:self.lastSelectedIndex].view;
                 UIView *currentView = [self controllerAtIndex:self.currentPageIndex].view;
                 UIView *oldSelectView = [self controllerAtIndex:oldSelectedIndex].view;
-                CGFloat duration = 0.2;
+                CGFloat duration = 0.3;
                 int backgroundIndex = [self calcIndexWithOffset:self.scrollView.contentOffset.x
                                                           width:self.scrollView.frame.size.width];
                 UIView *backgroundView;
@@ -207,6 +207,14 @@ typedef enum {
                     currentView_StartOrigin.x -= self.scrollView.frame.size.width;
                 }
                 
+                CGPoint lastView_AnimateToOrigin = lastView.frame.origin;
+                if (direction == JCPageScrollDirectionRight) {
+                    lastView_AnimateToOrigin.x -= self.scrollView.frame.size.width;
+                }else{
+                    lastView_AnimateToOrigin.x += self.scrollView.frame.size.width;
+                }
+                CGPoint currentView_AnimateToOrigin = lastView.frame.origin;
+                
                 CGPoint lastView_EndOrigin = lastView.frame.origin;
                 CGPoint currentView_EndOrigin = currentView.frame.origin;
                 
@@ -214,12 +222,13 @@ typedef enum {
                 currentView.frame = CGRectMake(currentView_StartOrigin.x, currentView_StartOrigin.y, pageSize.width, pageSize.height);
                 __weak typeof(self) wself = self;
                 [UIView animateWithDuration:duration delay:0.0 options:kNilOptions animations:^{
-                    lastView.frame = CGRectMake(lastView_EndOrigin.x, lastView_EndOrigin.y, pageSize.width, pageSize.height);
-                    currentView.frame = CGRectMake(currentView_EndOrigin.x, currentView_EndOrigin.y, pageSize.width, pageSize.height);
+                    lastView.frame = CGRectMake(lastView_AnimateToOrigin.x, lastView_AnimateToOrigin.y, pageSize.width, pageSize.height);
+                    currentView.frame = CGRectMake(currentView_AnimateToOrigin.x, currentView_AnimateToOrigin.y, pageSize.width, pageSize.height);
                 } completion:^(BOOL finished) {
                     if (finished) {
                         __strong typeof(wself) sself = wself;
-
+                        lastView.frame = CGRectMake(lastView_EndOrigin.x, lastView_EndOrigin.y, pageSize.width, pageSize.height);
+                        currentView.frame = CGRectMake(currentView_EndOrigin.x, currentView_EndOrigin.y, pageSize.width, pageSize.height);
                         backgroundView.hidden = NO;
                         [sself moveBackToOriginPositionIfNeeded:currentView index:sself.currentPageIndex];
                         [sself moveBackToOriginPositionIfNeeded:lastView index:sself.lastSelectedIndex];
@@ -228,6 +237,7 @@ typedef enum {
                         [sself scrollEndAnimation:animated];
                     }
                 }];
+                
             }else{
                 [self scrollAnimation:animated];
                 [self scrollEndAnimation:animated];
@@ -252,7 +262,7 @@ typedef enum {
 {
     [self.scrollView setContentOffset:[self calcOffsetWithIndex:self.currentPageIndex
                                                           width:self.scrollView.frame.size.width
-                                                       maxWidth:self.scrollView.contentSize.width] animated:animated];
+                                                       maxWidth:self.scrollView.contentSize.width] animated:NO];
 }
 
 - (void)scrollEndAnimation:(BOOL)animated

@@ -5,9 +5,9 @@ PageViewController for iOS.
 
 A way to replace UIPageViewController, JCPageViewController  support ViewController page transform like UIPageViewController. 
 
-This project has been used for [my graduation project](https://github.com/jakecai).
+This project has been used for [my graduation project](https://github.com/JakeCai/MyGraduationProject).
 
-<img src="http://g.recordit.co/VIf50wYuB6.gif" width="340" height="600" alt="JCPageViewController ScreenShot"/>
+<img src="http://g.recordit.co/DessJU6Cvh.gif" width="340" height="600" alt="JCPageViewController ScreenShot"/>
 
 ## Feature
 * Manage childControllers' life cycles.
