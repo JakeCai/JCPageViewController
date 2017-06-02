@@ -85,7 +85,7 @@ typedef enum {
     [super viewDidLayoutSubviews];
     if (self.firstDidLayoutSubViews) {
         if (self.navigationController) {
-            if ([self.navigationController.viewControllers[self.navigationController.viewControllers.count - 1] isKindOfClass:[self class]]) {
+            if ([self.navigationController.viewControllers.lastObject isEqual:self]) {
                 self.scrollView.contentOffset = CGPointZero;
                 self.scrollView.contentInset = UIEdgeInsetsZero;
             }
@@ -95,7 +95,7 @@ typedef enum {
 
         self.firstDidLayoutSubViews = NO;
     }else{
-            [self updateScrollViewLayoutIfNeeded];
+        [self updateScrollViewLayoutIfNeeded];
     }
 }
 
@@ -144,6 +144,9 @@ typedef enum {
     return [self.dataSource pageViewController:self controllerAtIndex:index];
 }
 
+/**
+ 模拟UIPageViewController的切换动画，替代ScrollView的setContentOffset animation
+ */
 - (void)showPageAtIndex:(int)index animated:(BOOL)animated
 {
     if (index < 0 || index >= self.pageCount) {
@@ -153,7 +156,7 @@ typedef enum {
     int oldSelectedIndex = self.lastSelectedIndex;
     self.lastSelectedIndex = self.currentPageIndex;
     self.currentPageIndex = index;
-    
+    //保证scrollview已经初始化并显示出来
     if (self.scrollView.frame.size.width > 0.0 && self.scrollView.contentSize.width > 0.0){
         [self pageViewControllerWillShowFromIndex:self.lastSelectedIndex
                                           toIndex:self.currentPageIndex
@@ -165,8 +168,38 @@ typedef enum {
         }
         [self addVisibleViewContorllerWith:index];
         
-        [self scrollBeginAnimation:animated];
+        void(^scrollBeginAnimation)() = ^() {
+            [[self controllerAtIndex:self.currentPageIndex] beginAppearanceTransition:YES animated:animated];
+            if (self.currentPageIndex != self.lastSelectedIndex) {
+                [[self controllerAtIndex:self.lastSelectedIndex] beginAppearanceTransition:NO animated:animated];
+            }
+        };
         
+        void(^scrollAnimation)() = ^() {
+            [self.scrollView setContentOffset:[self calcOffsetWithIndex:self.currentPageIndex
+                                                                  width:self.scrollView.frame.size.width
+                                                               maxWidth:self.scrollView.contentSize.width] animated:NO];
+        };
+        
+        void(^scrollEndAnimation)() = ^() {
+            [[self controllerAtIndex:self.currentPageIndex] endAppearanceTransition];
+            if (self.currentPageIndex != self.lastSelectedIndex) {
+                [[self controllerAtIndex:self.lastSelectedIndex] endAppearanceTransition];
+            }
+            
+            [self pageViewControllerDidShowFromIndex:self.lastSelectedIndex
+                                             toIndex:self.currentPageIndex
+                                            finished:animated];
+            
+            if ([self.delegate respondsToSelector:@selector(pageViewController:didTransitonFrom:toViewController:)]) {
+                [self.delegate pageViewController:self
+                                 didTransitonFrom:[self controllerAtIndex:self.lastSelectedIndex]
+                                 toViewController:[self controllerAtIndex:self.currentPageIndex]];
+            }
+            [self cleanCacheToClean];
+        };
+        
+        scrollBeginAnimation();
         if (animated) {
             if (self.lastSelectedIndex != self.currentPageIndex) {
                 CGSize pageSize = self.scrollView.frame.size;
@@ -178,7 +211,9 @@ typedef enum {
                 int backgroundIndex = [self calcIndexWithOffset:self.scrollView.contentOffset.x
                                                           width:self.scrollView.frame.size.width];
                 UIView *backgroundView;
-                
+                /**
+                 判断多余的view有没有动画，并将多余的view隐藏
+                 */
                 if (oldSelectView.layer.animationKeys.count > 0 && lastView.layer.animationKeys.count > 0) {
                     UIView *tmpView = [self controllerAtIndex:backgroundIndex].view;
                     if (tmpView != currentView && tmpView != lastView) {
@@ -186,14 +221,15 @@ typedef enum {
                         backgroundView.hidden = YES;
                     }
                 }
-                
+                //将所有动画效果清除
                 [self.scrollView.layer removeAllAnimations];
                 [oldSelectView.layer removeAllAnimations];
                 [lastView.layer removeAllAnimations];
                 [currentView.layer removeAllAnimations];
-                
+                //oldSelectView在模拟动画中不需要，移回原来的位置
                 [self moveBackToOriginPositionIfNeeded:oldSelectView index:oldSelectedIndex];
                 
+                //将需要用到的view放在前
                 [self.scrollView bringSubviewToFront:lastView];
                 [self.scrollView bringSubviewToFront:currentView];
                 lastView.hidden = NO;
@@ -232,56 +268,21 @@ typedef enum {
                         backgroundView.hidden = NO;
                         [sself moveBackToOriginPositionIfNeeded:currentView index:sself.currentPageIndex];
                         [sself moveBackToOriginPositionIfNeeded:lastView index:sself.lastSelectedIndex];
-                        
-                        [sself scrollAnimation:animated];
-                        [sself scrollEndAnimation:animated];
+                        scrollAnimation();
+                        scrollEndAnimation();
                     }
                 }];
                 
             }else{
-                [self scrollAnimation:animated];
-                [self scrollEndAnimation:animated];
+                scrollAnimation();
+                scrollEndAnimation();
             }
         }else{
-            [self scrollAnimation:animated];
-            [self scrollEndAnimation:animated];
+            scrollAnimation();
+            scrollEndAnimation();
         }
     }
     
-}
-
-- (void)scrollBeginAnimation:(BOOL)animated
-{
-    [[self controllerAtIndex:self.currentPageIndex] beginAppearanceTransition:YES animated:animated];
-    if (self.currentPageIndex != self.lastSelectedIndex) {
-        [[self controllerAtIndex:self.lastSelectedIndex] beginAppearanceTransition:NO animated:animated];
-    }
-}
-
-- (void)scrollAnimation:(BOOL)animated
-{
-    [self.scrollView setContentOffset:[self calcOffsetWithIndex:self.currentPageIndex
-                                                          width:self.scrollView.frame.size.width
-                                                       maxWidth:self.scrollView.contentSize.width] animated:NO];
-}
-
-- (void)scrollEndAnimation:(BOOL)animated
-{
-    [[self controllerAtIndex:self.currentPageIndex] endAppearanceTransition];
-    if (self.currentPageIndex != self.lastSelectedIndex) {
-        [[self controllerAtIndex:self.lastSelectedIndex] endAppearanceTransition];
-    }
-    
-    [self pageViewControllerDidShowFromIndex:self.lastSelectedIndex
-                                     toIndex:self.currentPageIndex
-                                    finished:animated];
-    
-    if ([self.delegate respondsToSelector:@selector(pageViewController:didTransitonFrom:toViewController:)]) {
-        [self.delegate pageViewController:self
-                         didTransitonFrom:[self controllerAtIndex:self.lastSelectedIndex]
-                         toViewController:[self controllerAtIndex:self.currentPageIndex]];
-    }
-    [self cleanCacheToClean];
 }
 
 - (void)moveBackToOriginPositionIfNeeded:(UIView *)view index:(int)index
@@ -464,11 +465,6 @@ typedef enum {
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
 {
-    if (scrollView.isTracking &&
-        scrollView.isDecelerating) {
-        
-    }
-    
     if (scrollView.isDragging &&
         [scrollView isEqual:self.scrollView]) {
         CGFloat offset = scrollView.contentOffset.x;
@@ -499,7 +495,10 @@ typedef enum {
                 }
                 [self addVisibleViewContorllerWith:self.guessToIndex];
                 [[self controllerAtIndex:self.guessToIndex] beginAppearanceTransition:YES animated:YES];
-                
+                /**
+                 *解决当多次滑动时生命周期错误，beginAppearanceTransition会多次调用，但是endAppearanceTransition只调用了一次
+                 *当lastGuessIndex==currentPageIndex，是第一次需要beginAppearanceTransition
+                 */
                 if (lastGuessIndex == self.currentPageIndex) {
                     [[self controllerAtIndex:self.currentPageIndex] beginAppearanceTransition:YES animated:YES];
                 }
@@ -577,7 +576,7 @@ typedef enum {
                                        width:scrollView.frame.size.width];
     int oldIndex = self.currentPageIndex;
     self.currentPageIndex = newIndex;
-    
+    //最终确定的位置与开始位置相同时，需要重新显示开始位置的视图，以及消失最近一次猜测的位置的视图
     if (newIndex == oldIndex) {
         if (self.guessToIndex >= 0 &&
             self.guessToIndex < self.pageCount) {
