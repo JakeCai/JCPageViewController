@@ -135,7 +135,9 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
         
         self.memCache.removeAllObjects()
     }
-    
+    /**
+     模拟UIPageViewController的切换动画，替代ScrollView的setContentOffset animation
+     */
     @objc public func showPageAtIndex(_ index:Int,animated:Bool) {
         if index < 0 || index >= self.pageCount {
             return
@@ -166,7 +168,6 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
                     maxWidth:Float(self.scrollView.contentSize.width)), animated: false)
             }
             
-            // Action closure after simulated scroll animation
             let scrollEndAnimation = { () -> Void in
                 self.controllerAtIndex(self.currentPageIndex).endAppearanceTransition()
                 if self.currentPageIndex != self.lastSelectedIndex {
@@ -191,7 +192,9 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
                     let backgroundIndex = self.calcIndexWithOffset(Float(self.scrollView.contentOffset.x),
                                                                    width: Float(self.scrollView.frame.size.width))
                     var backgroundView:UIView?
-                    
+                    /**
+                     判断多余的view有没有动画，并将多余的view隐藏
+                     */
                     if ((oldSelectView.layer.animationKeys()?.count)! > 0 &&
                         (lastView.layer.animationKeys()?.count)! > 0)
                     {
@@ -203,13 +206,14 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
                             backgroundView?.isHidden = true
                         }
                     }
+                    //将所有动画效果清除
                     self.scrollView.layer.removeAllAnimations()
                     oldSelectView.layer.removeAllAnimations()
                     lastView.layer.removeAllAnimations()
                     currentView.layer.removeAllAnimations()
-                    
+                    //oldSelectView在模拟动画中不需要，移回原来的位置
                     self.moveBackToOriginPositionIfNeeded(oldSelectView, index: oldSelectedIndex)
-                    
+                    //将需要用到的view放在前
                     self.scrollView.bringSubview(toFront: lastView)
                     self.scrollView.bringSubview(toFront: currentView)
                     lastView.isHidden = false
@@ -477,7 +481,10 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
                     
                     self.addVisibleViewContorllerWith(self.guessToIndex)
                     self.controllerAtIndex(self.guessToIndex).beginAppearanceTransition(true, animated: true)
-
+                    /**
+                     *解决当多次滑动时生命周期错误，beginAppearanceTransition会多次调用，但是endAppearanceTransition只调用了一次
+                     *当lastGuessIndex==currentPageIndex，是第一次需要beginAppearanceTransition
+                     */
                     if lastGuessIndex == self.currentPageIndex {
                         self.controllerAtIndex(self.currentPageIndex).beginAppearanceTransition(false, animated: true)
                     }
@@ -521,6 +528,7 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
         }
         let offset = scrollView.contentOffset.x
         let scrollViewWidth = scrollView.frame.size.width
+        // 如果松手时位置，刚好不需要decelerating,则主动调用刷新page
         if (Int(offset * 100) % Int(scrollViewWidth * 100)) == 0 {
             self.updatePageViewAfterTragging(scrollView: scrollView)
         }
@@ -541,7 +549,7 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
                                                 width: Float(scrollView.frame.size.width))
         let oldIndex = self.currentPageIndex
         self.currentPageIndex = newIndex
-        
+        //最终确定的位置与开始位置相同时，需要重新显示开始位置的视图，以及消失最近一次猜测的位置的视图
         if newIndex == oldIndex {
             if self.guessToIndex >= 0 && self.guessToIndex < self.pageCount {
                 self.controllerAtIndex(oldIndex).beginAppearanceTransition(true, animated: true)
