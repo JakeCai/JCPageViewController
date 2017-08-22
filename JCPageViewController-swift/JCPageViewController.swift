@@ -29,6 +29,11 @@ enum JCPageScrollDirection {
     @objc optional func pageViewController(_ pageViewController: JCPageViewController,
                                               didTransitonFrom fromVC:UIViewController,
                                               toViewController toVC:UIViewController)
+    
+    @objc optional func pageViewController(_ pageViewController:JCPageViewController,
+                                           fromIndex:Int,
+                                           toIndex:Int,
+                                           progress:CGFloat)
 }
 
 class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDelegate {
@@ -466,7 +471,7 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
                 self.guessToIndex = Int(floor((offset)/width))
             } else {}
             let maxCount = self.pageCount
-            
+            self.configurePagerIndexByProgress()
             if (guessToIndex != self.currentPageIndex &&
                 self.scrollView.isDecelerating == false) ||
                 self.scrollView.isDecelerating == true
@@ -573,8 +578,47 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
         self.cleanCacheToClean()
     }
     
+    fileprivate func configurePagerIndexByProgress(){
+        let offsetX = self.scrollView.contentOffset.x
+        let width = self.scrollView.frame.width
+        let floorIndex = floor(offsetX/width)
+        var progress = offsetX/width - floorIndex
+        
+        if offsetX < 0 || floorIndex >= CGFloat(self.pageCount){
+            return
+        }
+        let direction = offsetX >= CGFloat(self.originOffset) ? JCPageScrollDirection.left : JCPageScrollDirection.right
+        var fromIndex = 0
+        var toIndex = 0
+        if (direction == .left) {
+            if (floorIndex >= CGFloat(self.pageCount - 1)) {
+                return;
+            }
+            fromIndex = Int(floorIndex);
+            toIndex = min(self.pageCount-1, fromIndex + 1);
+        }else {
+            if (floorIndex < 0 ) {
+                return;
+            }
+            toIndex = Int(floorIndex);
+            fromIndex = min(self.pageCount-1, toIndex, +1);
+            progress = 1.0 - progress;
+        }
+        self.delegate?.pageViewController?(self, fromIndex: fromIndex, toIndex: toIndex, progress: progress)
+        self.pageViewController(self, fromIndex: fromIndex, toIndex: toIndex, progress: progress)
+    }
+    
     //MARK: - override
-    func pageViewControllerWillShow(_ fromIndex:Int, toIndex:Int, animated:Bool) { }
+    open func pageViewControllerWillShow(_ fromIndex:Int,
+                                    toIndex:Int,
+                                    animated:Bool) { }
 
-    func pageViewControllerDidShow(_ fromIndex:Int, toIndex:Int, finished:Bool) { }
+    open func pageViewControllerDidShow(_ fromIndex:Int,
+                                   toIndex:Int,
+                                   finished:Bool) { }
+    
+    open func pageViewController(_ pageViewController:JCPageViewController,
+                            fromIndex:Int,
+                            toIndex:Int,
+                            progress:CGFloat){}
 }

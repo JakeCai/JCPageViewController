@@ -478,7 +478,7 @@ typedef enum {
         }
         
         int maxCount = self.pageCount;
-        
+        [self configurePagerIndexByProgress];
         if ((_guessToIndex != self.currentPageIndex &&
             !self.scrollView.isDecelerating) ||
             self.scrollView.isDecelerating) {
@@ -609,6 +609,41 @@ typedef enum {
     [self cleanCacheToClean];
 }
 
+- (void)configurePagerIndexByProgress
+{
+    CGFloat offsetX = _scrollView.contentOffset.x;
+    CGFloat width = CGRectGetWidth(_scrollView.frame);
+    CGFloat floorIndex = floor(offsetX/width);
+    CGFloat progress = offsetX/width-floorIndex;
+    
+    if (floorIndex < 0 || floorIndex >= self.pageCount) {
+        return;
+    }
+    
+    JCPageScrollDirection direction = offsetX >= _originOffset ? JCPageScrollDirectionLeft : JCPageScrollDirectionRight;
+    
+    int fromIndex = 0, toIndex = 0;
+    
+    if (direction == JCPageScrollDirectionLeft) {
+        if (floorIndex >= _pageCount -1) {
+            return;
+        }
+        fromIndex = floorIndex;
+        toIndex = MIN(_pageCount-1, fromIndex + 1);
+    }else {
+        if (floorIndex < 0 ) {
+            return;
+        }
+        toIndex = floorIndex;
+        fromIndex = MIN(_pageCount-1, toIndex +1);
+        progress = 1.0 - progress;
+    }
+    if ([self.delegate respondsToSelector:@selector(pageViewController:transitionFromIndex:toIndex:progress:)]) {
+        [self.delegate pageViewController:self transitionFromIndex:fromIndex toIndex:toIndex progress:progress];
+    }
+    [self pageViewController:self transitionFromIndex:fromIndex toIndex:toIndex progress:progress];
+}
+
 
 #pragma mark - getter and setter
 - (int)pageCount
@@ -654,8 +689,16 @@ typedef enum {
 
 #pragma mark - override
 
-- (void)pageViewControllerWillShowFromIndex:(int)fromIndex toIndex:(int)toIndex animated:(BOOL)animated{ }
+- (void)pageViewControllerWillShowFromIndex:(int)fromIndex
+                                    toIndex:(int)toIndex
+                                   animated:(BOOL)animated{ }
 
-- (void)pageViewControllerDidShowFromIndex:(int)fromIndex toIndex:(int)toIndex finished:(BOOL)finished{ }
+- (void)pageViewControllerDidShowFromIndex:(int)fromIndex
+                                   toIndex:(int)toIndex
+                                  finished:(BOOL)finished{ }
 
+- (void)pageViewController:(JCPageViewController *)pageViewController
+       transitionFromIndex:(int)fromIndex
+                   toIndex:(int)toIndex
+                  progress:(CGFloat)progress{ }
 @end

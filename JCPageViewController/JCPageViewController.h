@@ -31,6 +31,11 @@
         didTransitonFrom:(UIViewController *)fromVC
           toViewController:(UIViewController *)toVC;
 
+- (void)pageViewController:(JCPageViewController *)pageViewController
+       transitionFromIndex:(int)fromIndex
+                   toIndex:(int)toIndex
+                  progress:(CGFloat)progress;
+
 @end
 
 @interface JCPageViewController : UIViewController
@@ -49,8 +54,16 @@
 
 #pragma mark - override
 
-- (void)pageViewControllerWillShowFromIndex:(int)fromIndex toIndex:(int)toIndex animated:(BOOL)animated;
+- (void)pageViewControllerWillShowFromIndex:(int)fromIndex
+                                    toIndex:(int)toIndex
+                                   animated:(BOOL)animated;
 
-- (void)pageViewControllerDidShowFromIndex:(int)fromIndex toIndex:(int)toIndex finished:(BOOL)finished;
+- (void)pageViewControllerDidShowFromIndex:(int)fromIndex
+                                   toIndex:(int)toIndex
+                                  finished:(BOOL)finished;
 
+- (void)pageViewController:(JCPageViewController *)pageViewController
+       transitionFromIndex:(int)fromIndex
+                   toIndex:(int)toIndex
+                  progress:(CGFloat)progress;
 @end
