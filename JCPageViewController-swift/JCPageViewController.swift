@@ -461,8 +461,9 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
     
     //MARK: - UIScrollViewDelegate
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offset = scrollView.contentOffset.x
+        self.caculateIndexByProgress(offset, direction: offset >= CGFloat(self.originOffset) ? .right : .left)
         if scrollView.isDragging == true && scrollView == self.scrollView {
-            let offset = scrollView.contentOffset.x
             let width = scrollView.frame.width
             let lastGuessIndex = self.guessToIndex < 0 ? self.currentPageIndex : self.guessToIndex
             if self.originOffset < Double(offset) {
@@ -471,7 +472,6 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
                 self.guessToIndex = Int(floor((offset)/width))
             } else {}
             let maxCount = self.pageCount
-            self.configurePagerIndexByProgress()
             if (guessToIndex != self.currentPageIndex &&
                 self.scrollView.isDecelerating == false) ||
                 self.scrollView.isDecelerating == true
@@ -578,31 +578,35 @@ class JCPageViewController: UIViewController, UIScrollViewDelegate, NSCacheDeleg
         self.cleanCacheToClean()
     }
     
-    fileprivate func configurePagerIndexByProgress(){
-        let offsetX = self.scrollView.contentOffset.x
-        let width = self.scrollView.frame.width
-        let floorIndex = floor(offsetX/width)
-        var progress = offsetX/width - floorIndex
-        
-        if offsetX < 0 || floorIndex >= CGFloat(self.pageCount){
+    fileprivate func caculateIndexByProgress(_ offsetX:CGFloat, direction:JCPageScrollDirection){
+        if self.scrollView.frame.isEmpty {
             return
         }
-        let direction = offsetX >= CGFloat(self.originOffset) ? JCPageScrollDirection.left : JCPageScrollDirection.right
+        if self.pageCount <= 0 {
+            self.currentPageIndex = -1
+            return
+        }
+        let width = self.scrollView.frame.width
+        let floadIndex = offsetX/width
+        let floorIndex = Int(floor(floadIndex))
+        if floorIndex < 0 || floorIndex >= self.pageCount || floadIndex > CGFloat(self.pageCount-1) {
+            return
+        }
+        
+        var progress = offsetX/width - CGFloat(floorIndex);
         var fromIndex = 0
         var toIndex = 0
-        if (direction == .left) {
-            if (floorIndex >= CGFloat(self.pageCount - 1)) {
-                return;
+        if direction == .left {
+            fromIndex = floorIndex
+            toIndex = min(self.pageCount - 1, fromIndex + 1)
+            if fromIndex == toIndex && toIndex == (self.pageCount - 1)  {
+                fromIndex = self.pageCount-2
+                progress = 1.0
             }
-            fromIndex = Int(floorIndex);
-            toIndex = min(self.pageCount-1, fromIndex + 1);
         }else {
-            if (floorIndex < 0 ) {
-                return;
-            }
-            toIndex = Int(floorIndex);
-            fromIndex = min(self.pageCount-1, toIndex, +1);
-            progress = 1.0 - progress;
+            toIndex = floorIndex
+            fromIndex = min(self.pageCount-1, toIndex + 1)
+            progress = 1.0 - progress
         }
         self.delegate?.pageViewController?(self, fromIndex: fromIndex, toIndex: toIndex, progress: progress)
         self.pageViewController(self, fromIndex: fromIndex, toIndex: toIndex, progress: progress)
