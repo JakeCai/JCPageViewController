@@ -3,7 +3,7 @@ PageViewController for iOS.
 
 A way to replace UIPageViewController, JCPageViewController  support ViewController page transform like UIPageViewController. 
 
-![JCPageViewController ScreenShot](https://thumbs.gfycat.com/DeadLeanAcornbarnacle-size_restricted.gif)
+![JCPageViewController ScreenShot](/demo.gif)
 
 ## Feature
 * Manage childControllers' life cycles.
@@ -36,7 +36,7 @@ Copy files to your project.
 ### Override and Protocol
 JCPageViewController provide some APIs to override.
 
-About override the class, you can refer file 'JCTabPageViewController' in [my graduation project](https://github.com/JakeCai/MyGraduationProject).
+About override the class, you can refer file 'JCTabPageViewController'
 
 	#pragma mark - override
 	- (void)pageViewControllerWillShowFromIndex:(int)fromIndex toIndex:(int)toIndex animated:(BOOL)animated;

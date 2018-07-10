@@ -62,10 +62,12 @@
             tabVc.pageIndex = i;
             tabVc.view.backgroundColor = [UIColor colorWithRed:0.2 * ((i + 1) % 2) green:0.2 * ((i + 1)  % 3) blue:0.2 * ((i + 1)  % 5) alpha:1];
             
-            UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(100, 100, 100, 100)];
-            label.backgroundColor = [UIColor grayColor];
+            UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0,100, 100)];
+            label.textColor = [UIColor whiteColor];
+            label.font = [UIFont systemFontOfSize:36];
             label.text = [NSString stringWithFormat:@"tab %d",i];
             label.textAlignment = NSTextAlignmentCenter;
+            label.center = tabVc.view.center;
             [tabVc.view addSubview:label];
             [_controllerArray addObject:tabVc];
         }
